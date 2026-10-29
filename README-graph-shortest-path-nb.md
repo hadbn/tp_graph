@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.2
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -125,6 +125,7 @@ graph_as_list = [
 
 justifiez votre réponse
 ````
+Non, puisqu'ici seules les arêtes sont représentées. Il est très difficile d'obtenir une liste des sommets du graphe, ou une liste des prédécessuers ou des successeurs d'un sommet. Un sommet isolé ne peut pas être représenté.
 
 +++
 
@@ -161,6 +162,7 @@ graph_as_matrix = (
 
 justifiez votre réponse
 ````
+C'est déjà plus adapté qu'une liste. On peut facilement obtenir la distance d'un sommet à un autre en passant par n arrêtes en mettant la matrice à la puissance n. On peut accéder aussi facilement aux successeurs qu'aux prédécesseurs, même si ce n'est pas direct.
 
 +++
 
@@ -170,7 +172,15 @@ justifiez votre réponse
 :cell_style: split
 
 # comment feriez-vous ?
-my_graph = ...
+my_graph = {'a':[['b',7],['c',14],['d',9]],
+            'b':[['d',10],['e',15]],
+            'c':[['d',2],['f',9]],
+            'd':[['e',11]],
+            'e':[['f',6]],
+            'f':[]}
+# C'est un graphe avec en clefs les sommets et en valeurs la liste de leurs successeurs associés aux poids des arrêtes
+# Tout tient en une seule structure
+# On accède directement aux successeurs d'un sommet
 ```
 
 +++ {"cell_style": "split"}
@@ -285,7 +295,7 @@ G = {
 
 # rappel: pour convertir une chaine en entier
 
-int('12 ')
+int('12')
 ```
 
 ```{code-cell} ipython3
@@ -335,7 +345,21 @@ car votre code sera plus léger à lire
 # à vous d'écrire cette fonction
 
 def parse_graph(filename):
-    ...
+    
+    with open(filename,'r') as f :
+        a = f.readlines()
+    
+    graphe = {}
+    
+    for i in range(len(a)):
+        source, but, poids = a[i].strip().split(',')
+        if source not in graphe :
+            graphe[source] = {}
+        if but not in graphe :
+            graphe[but] = {}
+        graphe[source][but] = int(poids)
+
+    return graphe
 ```
 
 pour vérifier, inspectez visuellement votre résultat  
@@ -390,7 +414,7 @@ def number_vertices(graph):
     Returns:
       int: number of vertices
     """
-    ...
+    return len(graph.keys())
 ```
 
 ### pour vérifier
@@ -524,7 +548,7 @@ je ne vous donne pas davantage d'indices, je vous laisse écrire ceci
 ```{code-cell} ipython3
 # votre code 
 
-def reachables(graph, s):
+def reachables(graph,s):
     """
     computes the set of reachable vertices in a graph from source s
 
@@ -534,7 +558,16 @@ def reachables(graph, s):
     Returns:
       a set of vertices in graph
     """
-    ...
+    atteignables = [s]
+    a_visiter = list(graph[s].keys())
+    while len(a_visiter) > 0 :
+        sommet = a_visiter.pop()
+        atteignables.append(sommet)
+        voisins = list(graph[sommet].keys())
+        for v in voisins :
+            if v not in atteignables :
+                a_visiter.append(v)
+    return set(atteignables)
 ```
 
 ### pour vérifier
@@ -762,7 +795,12 @@ pour commencer la structure générale de la fonction ressemble à ceci
 # à vous d'écrire une fonction
 # comme ceci
 
-def shortest_distance(graph, v1, v2):
+import math
+import numpy as np
+
+inf = math.inf
+
+def shortest_distance(graph,source,but):
     """
     this function computes the length of the shortest path
     in graph between v1 and v2
@@ -774,8 +812,35 @@ def shortest_distance(graph, v1, v2):
     Returns:
       int: the length of the shortest path, or None 
     """
-    ...
+    if but not in reachables(graph,source) :
+        return None
     
+    distances = {}
+    for s in graph :
+        distances[s] = inf
+    distances[source] = 0
+    
+    visites = [source] # liste des sommets visités
+    a_visiter = []
+    poids = []
+    for v, w in graph[source].items():
+        a_visiter.append([source,v])
+        poids.append(w)
+        
+    while distances[but] == inf :
+        print(poids)
+        i = np.argmin(poids)
+        u, v = a_visiter.pop(i)
+        w = poids.pop(i)
+        if w < distances[v] :
+            distances[v] = w
+        if v not in visites :
+            visites.append(v)
+            for u, w in graph[v].items():
+                a_visiter.append([v,u])
+                poids.append(distances[v] + w)
+
+    return distances[but]
 ```
 
 ### vérifications
@@ -1274,4 +1339,8 @@ P = planar(N)
 N = 150
 P = planar(N)
 %timeit shortest_path2(P, (1, 1), (N, N))
+```
+
+```{code-cell} ipython3
+pip install graphviz
 ```
