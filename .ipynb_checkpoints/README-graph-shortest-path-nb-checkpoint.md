@@ -841,10 +841,6 @@ def shortest_distance(graph,source,but):
                 poids.append(distances[v] + w)
 
     return distances[but]
-        
-        
-        
-    
 ```
 
 ### vérifications
