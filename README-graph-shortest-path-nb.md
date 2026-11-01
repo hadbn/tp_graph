@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.2
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -123,7 +123,7 @@ graph_as_list = [
 
 ````{admonition} pensez-vous que cette structure soit adaptée ?
 
-justifiez votre réponse
+Cela fonctionne pour des petits graphes mais ça peut vite devenir très lourd, si le graphe est très grand. Pour un graphe non orienté, cela peut paraître redondant.
 ````
 
 +++
@@ -159,7 +159,7 @@ graph_as_matrix = (
 
 ````{admonition} pensez-vous que cette structure soit adaptée ?
 
-justifiez votre réponse
+C'est la structure qu'on a beaucoup utilisé en prépa, et elle était alors adapté aux programmes qu'on écrivait. Elle prend en revanche plus d'espace, avec beaucoup de données qui ne fournissent pas vraiment d'informations (les 0).
 ````
 
 +++
@@ -171,6 +171,7 @@ justifiez votre réponse
 
 # comment feriez-vous ?
 my_graph = ...
+#peut être avec des bibliothèques Python on peut simplifier la création et manipulation de graphes
 ```
 
 +++ {"cell_style": "split"}
@@ -335,7 +336,21 @@ car votre code sera plus léger à lire
 # à vous d'écrire cette fonction
 
 def parse_graph(filename):
-    ...
+    graph ={}
+    with open(filename, 'r', encoding='utf-8') as f:
+        for ligne in f:
+            a,b,n=ligne.strip().split(',')
+            if a in graph : 
+                graph[a][b]=int(n)
+            else :
+                dico ={}
+                dico[b] = int(n)
+                graph[a]=dico
+            if b not in graph :
+                graph[b]={}
+        return graph
+            
+            
 ```
 
 pour vérifier, inspectez visuellement votre résultat  
@@ -348,7 +363,16 @@ parse_graph("data/graph.csv")
 ```
 
 ```{code-cell} ipython3
-# et ceci doit être True
+G = {
+    'a': {'b': 7, 'd': 9, 'c': 14},
+    'b': {'d': 10, 'e': 15},
+    'c': {'d': 2, 'f': 9},
+    'd': {'e': 11},
+    'e': {'f': 6},
+    'f' : {},
+}
+
+
 
 parse_graph("data/graph.csv") == G
 ```
@@ -381,6 +405,7 @@ g3ref == parse_graph("data/graph-3.csv")
 
 ```{code-cell} ipython3
 def number_vertices(graph):
+    return (len(graph))
     """
     returns number of vertices
     
@@ -522,9 +547,20 @@ except Exception as exc:
 je ne vous donne pas davantage d'indices, je vous laisse écrire ceci
 
 ```{code-cell} ipython3
-# votre code 
+# Votre code 
 
-def reachables(graph, s):
+def reachables(graph, s, a):
+    a.append(s)
+    new_v=graph.get(s,{}).keys()
+    unseen_v=[]
+    for v in new_v:
+        if v not in a:
+            a.append(v)
+            unseen_v.append(v)
+    for v in unseen_v:
+        reachables(graph,v,a)
+    return set(a)
+    
     """
     computes the set of reachable vertices in a graph from source s
 
@@ -545,7 +581,7 @@ vous pouvez vérifier visuellement en comparant vos résultats avec ceux qu'on a
 # pour le debug
 
 for s in reach:
-    print(f"depuis {s} → {reachables(reach, s)}")
+    print(f"depuis {s} → {reachables(reach, s,[])}")
 ```
 
 ```{code-cell} ipython3
@@ -553,7 +589,7 @@ for s in reach:
 # on teste le résultat sur chaque sommet
 
 for vertex, expected_reachables in reach_reachables.items():
-    print(f"en partant de {vertex} → {expected_reachables == reachables(reach, vertex)}")
+    print(f"en partant de {vertex} → {expected_reachables == reachables(reach, vertex, [])}")
 ```
 
 ```{code-cell} ipython3
@@ -573,7 +609,7 @@ G_expected_reachables = [
 # on vérifie pour chacun qu'on
 # obtient bien le résultat attendu
 for (vertex, expected_reachables) in G_expected_reachables:
-    computed = reachables(G, vertex)
+    computed = reachables(G, vertex, [])
     if computed != expected_reachables:
         print(f"ERROR since {vertex}: found {computed} != {expected_reachables}")
     else:
@@ -635,6 +671,8 @@ en français :
 
 * quels moyens (structures de données) voyez-vous pour matérialiser avec des objets Python la notion de marque ?
 
+On peut utiliser un dictionnaire dont les valeurs sont les marques
+
 +++ {"cell_style": "center"}
 
 ````{admonition} terminaison d'un algo avec les notebooks
@@ -657,7 +695,7 @@ Rappel :
 * le mode Édition c'est pour insérer du texte, donc si vous tapez `i` `i` en mode édition, ça insère `ii` dans votre notebook, évidemment
 ````
 
-+++
++++ {"jp-MarkdownHeadingCollapsed": true}
 
 ### pour les forts
 
@@ -716,12 +754,19 @@ pour commencer la structure générale de la fonction ressemble à ceci
 
     def shortest_distance(graph, v1, v2):
 
+        
+        #il faut vérifier que c'est atteignable avec la fonction précédente
+        if v2 not in 
+        il faut un idco avec clé (sommest atteignables) et la valeur c'est la distance (infinie au début)
         # initialisation
         # on se définit une variable locale à la fonction
         # qui matérialise le marquage
+        unseen=reachables(graph,v1,[])
+        visited = []
 
-        visited = ...
-
+        condition d'arret : sommet final pas dans les visités
+        on parcourt les sommets non visités, on prend celui où la distance est la plus courte ; on a le sommet actuel ; on enlève le sommet où on est ; on regarde les voisins ; on recalcule la distance entre initial et le nouveau que si ce sommet n'a aps été visité
+        il faut boucler sur la matrice des sommets visités 
         # ensuite on fait une boucle jusqu'à ce qu'une certaine condition soit remplie
         # souvenez-vous qu'on peut sortir d'un while avec 'break' - ou aussi 'return' d'ailleurs
         while True:
@@ -763,6 +808,40 @@ pour commencer la structure générale de la fonction ressemble à ceci
 # comme ceci
 
 def shortest_distance(graph, v1, v2):
+    if v2 not in reachables (graph,v1,[]):
+        return None
+    unseen=reachables(graph,v1,[])
+    dist={v:math.inf for v in unseen }
+    dist[v1]=0
+    visited = []
+
+    while v2 not in visited :
+
+        shortest=math.inf
+        shortest_v=None
+
+#Recherche du sommet le plus proche
+        
+        for v in unseen : 
+            if v not in visited:
+                if dist[v] < shortest:
+                    shortest = dist[v]
+                    shortest_v = v
+        visited.append(shortest_v)
+
+#Actualisation des distances
+        
+        for v in graph[shortest_v]:
+            if v not in visited:
+                new_dist = dist[shortest_v] + graph[shortest_v][v]
+                if new_dist < dist[v]:
+                    dist[v] = new_dist
+
+    return dist[v2]
+    
+    
+    
+        
     """
     this function computes the length of the shortest path
     in graph between v1 and v2
@@ -866,6 +945,48 @@ comment pourriez-vous adapter cet algorithme pour retourner **aussi** le chemin 
 
 ```{code-cell} ipython3
 def shortest_path(graph, v1, v2):
+
+    if v2 not in reachables(graph, v1, []):
+        return None
+
+    unseen = reachables(graph, v1, [])
+    dist = {v: math.inf for v in unseen}
+    dist[v1] = 0
+    visited = []
+    precedent = {}
+
+    while v2 not in visited:
+
+        shortest = math.inf
+        shortest_v = None
+
+        for v in unseen:
+            if v not in visited:
+                if dist[v] < shortest:
+                    shortest = dist[v]
+                    shortest_v = v
+
+        visited.append(shortest_v)
+
+        for v in graph[shortest_v]:
+            if v not in visited:
+                new_dist = dist[shortest_v] + graph[shortest_v][v]
+                if new_dist < dist[v]:
+                    dist[v] = new_dist
+                    precedent[v] = shortest_v
+
+    path = []
+    som = v2
+
+    while som != v1:
+        path.append(som)
+        som = precedent[som]
+
+    path.append(v1)
+    path.reverse()
+
+    return dist[v2], path
+    
     """
     same as shortest_distance but returns a tuple
     (distance, path)
@@ -879,7 +1000,9 @@ def shortest_path(graph, v1, v2):
 ### pour vérifier
 
 ```{code-cell} ipython3
-# je vous laisse le soin d'écrire le code pour tester
+# je vous laisse le soin d'écrire le code pour tester ; doit renvoyer True
+
+shortest_path(G, 'c', 'e')==(13,['c','d','e'])
 ```
 
 ## un graphe un peu plus réaliste
