@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.2
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -126,7 +126,13 @@ graph_as_list = [
 justifiez votre réponse
 ````
 
-+++
+```{code-cell} ipython3
+# Non. Les listes ne permettent pas de définir les relations entre sommets et arêtes.
+# Les parcours de listes sont plus longs.
+# Les modifications sont moins pratiques.
+
+# En général, on préfère utiliser des dictionnaires.
+```
 
 ### matrice
 
@@ -162,7 +168,12 @@ graph_as_matrix = (
 justifiez votre réponse
 ````
 
-+++
+```{code-cell} ipython3
+# Même problème. 
+# Elle prend beaucoup d'espace.
+# Supprimer un sommet nécessite de modifier sa taille.
+# Par contre, si deux sommets sont reliés il suffit de consulter une case.
+```
 
 ### autres idées ?
 
@@ -170,7 +181,13 @@ justifiez votre réponse
 :cell_style: split
 
 # comment feriez-vous ?
-my_graph = ...
+my_graph = { 'a' : {'c' : 14, 'b' : 7, 'd' : 9},
+             'b' : {'d' : 10, 'e' : 15},
+             'c' : {'d' : 2, 'f' : 9},
+             'd' : {'e' : 11},
+             'e' : {'f' : 6},
+             'f' : {}
+           }
 ```
 
 +++ {"cell_style": "split"}
@@ -332,10 +349,46 @@ car votre code sera plus léger à lire
 ### à vous de jouer
 
 ```{code-cell} ipython3
+# On vérifie comment sont présentées les données dans le fichier.
+with open("data/graph.csv", "r", encoding="utf-8") as f:
+    contenu = f.read()
+print(contenu)
+# Chaque ligne on a [sommet 1 -> sommet 2, poids]
+```
+
+```{code-cell} ipython3
 # à vous d'écrire cette fonction
 
+
 def parse_graph(filename):
-    ...
+    """
+    Lit un fichier contenant un graphe et renvoie
+    le dictionnaire qui le représente.
+    """
+    graph = {}
+    visite = []
+
+    with open(filename, "r", encoding="utf-8") as f:
+        for ligne in f:
+            x, y, w = ligne.strip().split(',')
+
+            w = int(w)
+
+            for k in [x, y]:
+                if k not in visite:
+                    visite.append(k)
+
+            if x not in graph:
+                graph[x] = {}
+
+            graph[x][y] = w
+
+    # On rajoute les sommets isolés
+    for element in visite:
+        if element not in graph:
+            graph[element] = {}
+
+    return graph
 ```
 
 pour vérifier, inspectez visuellement votre résultat  
@@ -390,7 +443,7 @@ def number_vertices(graph):
     Returns:
       int: number of vertices
     """
-    ...
+    return len(graph)
 ```
 
 ### pour vérifier
@@ -524,17 +577,23 @@ je ne vous donne pas davantage d'indices, je vous laisse écrire ceci
 ```{code-cell} ipython3
 # votre code 
 
-def reachables(graph, s):
-    """
-    computes the set of reachable vertices in a graph from source s
+from collections import deque
 
-    Parameters:
-      graph: a graph implemented as a dict of adjacency dicts
-      s: the source vertex
-    Returns:
-      a set of vertices in graph
-    """
-    ...
+def reachables(graph, s):
+    p = deque([s])
+    visite = {s}
+
+    while p:
+        u = p.pop()
+
+        for v in graph[u]:
+            if v not in visite:
+                visite.add(v)
+                p.append(v)
+
+    return set(visite)
+
+        
 ```
 
 ### pour vérifier
@@ -774,8 +833,46 @@ def shortest_distance(graph, v1, v2):
     Returns:
       int: the length of the shortest path, or None 
     """
-    ...
-    
+    # Récupérer tous les sommets, y compris ceux présents
+    # uniquement dans les dictionnaires voisins
+    sommets = set(graph)
+
+    for voisins in graph.values():
+        sommets.update(voisins)
+
+    # Initialiser les distances
+    distances = {s: float('inf') for s in sommets}
+    distances[v1] = 0
+
+    visites = set()
+
+    while len(visites) < len(sommets):
+
+        # Trouver le sommet non visité le plus proche
+        candidats = [s for s in sommets if s not in visites]
+
+        s = min(candidats, key=lambda x: distances[x])
+
+        # Aucun chemin possible
+        if distances[s] == float('inf'):
+            return float('inf')
+
+        # Destination atteinte
+        if s == v2:
+            return distances[s]
+
+        visites.add(s)
+
+        # Explorer les voisins
+        for d, poids in graph.get(s, {}).items():
+
+            if d not in visites:
+                nouvelle_distance = distances[s] + poids
+
+                if nouvelle_distance < distances[d]:
+                    distances[d] = nouvelle_distance
+
+    return float('inf')
 ```
 
 ### vérifications
