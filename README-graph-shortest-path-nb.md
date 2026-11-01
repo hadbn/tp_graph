@@ -174,8 +174,8 @@ justifiez votre réponse
 :cell_style: split
 
 # comment feriez-vous ?
-#on peut utiliser un dictionnaire de dictionnaire, comme ça on peut accéder facilement à un sommet, 
-#ses successeurs et la valeur
+#on peut utiliser un dictionnaire de dictionnaire, comme ça on peut accéder facilement à 
+#un sommet, ses successeurs et la valeur
 my_graph =  {
     'a': {'b': 7, 'c': 14, 'd':9},
     'b': {'d': 10, 'e': 15},
@@ -806,8 +806,25 @@ pour commencer la structure générale de la fonction ressemble à ceci
 # comme ceci
 
 def shortest_distance(graph, v1, v2):
-    visited={}
-    while 
+    not_visited=[sommet for sommet in graph]
+    distance= {sommet : math.inf for sommet in graph}
+    distance[v1] = 0
+    
+    while v2 in not_visited :
+        sommet_actuel = not_visited[0]
+        for s in not_visited:
+           if distance[s] < distance[sommet_actuel]:
+               sommet_actuel = s
+        if distance[sommet_actuel] == math.inf :
+           return None
+        not_visited.remove(sommet_actuel)
+        voisins = graph[sommet_actuel]
+        for sommet,poids in voisins.items() :
+            if sommet in not_visited :
+                if distance[sommet_actuel] + poids < distance[sommet] :
+                    distance[sommet] = distance[sommet_actuel] + poids  
+    return distance[v2]
+       
     """
     this function computes the length of the shortest path
     in graph between v1 and v2
@@ -820,6 +837,8 @@ def shortest_distance(graph, v1, v2):
       int: the length of the shortest path, or None 
     """
     ...
+
+
     
 ```
 
@@ -888,7 +907,7 @@ c'est l'occasion de parler un peu de l'instruction `assert`:
 :tags: [raises-exception]
 
 GD2 = parse_graph("data/dense-2.csv")
-assert shortest_distance(GD2, "1x1", "2x2") == 4
+assert shortest_distance(GD2, '1x1', '2x2') == 4
 ```
 
 ```{code-cell} ipython3
@@ -911,11 +930,38 @@ comment pourriez-vous adapter cet algorithme pour retourner **aussi** le chemin 
 
 ```{code-cell} ipython3
 def shortest_path(graph, v1, v2):
+    not_visited=[sommet for sommet in graph]
+    distance= {sommet : math.inf for sommet in graph}
+    distance[v1] = 0
+    predecesseurs = {sommet: None for sommet in G}
+    
+    while v2 in not_visited :
+        sommet_actuel = not_visited[0]
+        for s in not_visited:
+           if distance[s] < distance[sommet_actuel]:
+               sommet_actuel = s
+        if distance[sommet_actuel] == math.inf :
+           return None
+        not_visited.remove(sommet_actuel)
+        voisins = graph[sommet_actuel]
+        for sommet,poids in voisins.items() :
+            if sommet in not_visited :
+                if distance[sommet_actuel] + poids < distance[sommet] :
+                    distance[sommet] = distance[sommet_actuel] + poids
+                    predecesseurs[sommet] = sommet_actuel
+    path = []
+    sommet=v2
+    while sommet is not None:
+        path.append(sommet)
+        sommet = predecesseurs[sommet]
+        
+    return distance[v2],path
     """
     same as shortest_distance but returns a tuple
     (distance, path)
     path being a list of vertices
     """
+    
     # of course to write this function you will start
     # from your code for shortest_distance
     ...
@@ -925,6 +971,7 @@ def shortest_path(graph, v1, v2):
 
 ```{code-cell} ipython3
 # je vous laisse le soin d'écrire le code pour tester
+shortest_path(G, 'a', 'f') ==(23, ['f', 'c', 'a'])
 ```
 
 ## un graphe un peu plus réaliste
