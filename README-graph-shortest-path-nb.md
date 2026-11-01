@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.2
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -123,7 +123,7 @@ graph_as_list = [
 
 ````{admonition} pensez-vous que cette structure soit adaptée ?
 
-justifiez votre réponse
+elle ne semble pas adaptée car on doit parcourir toute la liste lorsque l'on cherche une arête en particulier
 ````
 
 +++
@@ -159,7 +159,7 @@ graph_as_matrix = (
 
 ````{admonition} pensez-vous que cette structure soit adaptée ?
 
-justifiez votre réponse
+plus qu'avant, mais il y a beaucoup d'informations inutiles donc beaucoup de stockage pour rien
 ````
 
 +++
@@ -170,7 +170,8 @@ justifiez votre réponse
 :cell_style: split
 
 # comment feriez-vous ?
-my_graph = ...
+my_graph = { 'a':{'c':{14}, 'd':{9}, 'b':{7}}, 'b': ... } 
+"""on fait un dictionnaire de dictionnaire pour pouvoir directement pointer les cases qu'on veut"""
 ```
 
 +++ {"cell_style": "split"}
@@ -335,7 +336,18 @@ car votre code sera plus léger à lire
 # à vous d'écrire cette fonction
 
 def parse_graph(filename):
-    ...
+    d = {}
+    with open(filename, 'r') as f:
+        for ligne in f:
+            ligne = ligne.strip()
+            lettre1, lettre2, poids = ligne.split(',')
+            poids = int(poids)
+            if lettre1 not in d :
+                d[lettre1]={}
+            if lettre2 not in d:
+                d[lettre2]={}
+            d[lettre1][lettre2]=poids
+    return d
 ```
 
 pour vérifier, inspectez visuellement votre résultat  
@@ -381,16 +393,7 @@ g3ref == parse_graph("data/graph-3.csv")
 
 ```{code-cell} ipython3
 def number_vertices(graph):
-    """
-    returns number of vertices
-    
-    Parameters:
-      graph: implemented as a dictionary of adjacency dictionaries
-      
-    Returns:
-      int: number of vertices
-    """
-    ...
+    return (len(graph))
 ```
 
 ### pour vérifier
@@ -524,17 +527,15 @@ je ne vous donne pas davantage d'indices, je vous laisse écrire ceci
 ```{code-cell} ipython3
 # votre code 
 
-def reachables(graph, s):
-    """
-    computes the set of reachable vertices in a graph from source s
-
-    Parameters:
-      graph: a graph implemented as a dict of adjacency dicts
-      s: the source vertex
-    Returns:
-      a set of vertices in graph
-    """
-    ...
+def reachables(graph, s, vus=None):
+    if vus is None:
+        vus = set()
+    vus.add(s)
+    for e in graph[s]:
+        if e not in vus:
+            reachables(graph, e, vus)
+    return vus
+reachables(G,'a')
 ```
 
 ### pour vérifier
@@ -633,7 +634,8 @@ en français :
 
 #### question
 
-* quels moyens (structures de données) voyez-vous pour matérialiser avec des objets Python la notion de marque ?
+* quels moyens (structures de données) voyez-vous pour matérialiser avec des objets Python la notion de marque ? Un dico
+  
 
 +++ {"cell_style": "center"}
 
@@ -712,57 +714,47 @@ pour commencer la structure générale de la fonction ressemble à ceci
 
 **à ne pas prendre au pied de de la lettre**, vous pouvez/devez changer/renommer/faire autrement comme vous le sentez...
 
-+++
-
+```{code-cell} ipython3
     def shortest_distance(graph, v1, v2):
-
-        # initialisation
-        # on se définit une variable locale à la fonction
-        # qui matérialise le marquage
-
-        visited = ...
-
-        # ensuite on fait une boucle jusqu'à ce qu'une certaine condition soit remplie
-        # souvenez-vous qu'on peut sortir d'un while avec 'break' - ou aussi 'return' d'ailleurs
+        assert v1 in reacheables(v2)
+        
+        visited = {v1: 0}
+        if v1 == v2:        
+            return 0
+    
         while True:
-
-            # on va calculer les arêtes qui font partie de la bordure
-            edges = set()
-
-            # on énumère toutes les arêtes, et on ajoute dans
-            # edges celles qui satisfont le critère
-            # for ...
-            #    for ...
-            #      if ...
-            #         edges.add(...)
-            #  
-
-            # si on n'a aucune arête c'est que c'est raté
-            if not edges:
-                return
-
-            # sinon on trouve la meilleure
+            sommets = set()
+            for s1 in visited:
+                for s2 in graph.get(s1, {}):
+                    if s2 not in visited:
+                        sommets.add((s1, s2))
+    
+    
             shortest_length = math.inf
             shortest_vertex = None
-            for edge in edges:
-                ... # trouver la plus courte
-                    # et mémoriser le sommet correspondant
-
-            # marquer le sommet correspondant
-
-            # regarder si c'est le sommet 
+            for s1, s2 in sommets:
+                length = visited[s1] + graph[s1][s2]
+                if length < shortest_length:
+                    shortest_length = length
+                    shortest_vertex = s2
+    
+            visited[shortest_vertex] = shortest_length
+    
             if shortest_vertex == v2:
-                return ...
-
-+++
+                return shortest_length
+```
 
 ### exo #4: `shortest_distance`
 
 ```{code-cell} ipython3
-# à vous d'écrire une fonction
-# comme ceci
+
 
 def shortest_distance(graph, v1, v2):
+    
+    assert v2 in reacheables(v2)
+    
+    visited=[]
+    
     """
     this function computes the length of the shortest path
     in graph between v1 and v2
