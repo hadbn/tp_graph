@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.2
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -126,7 +126,9 @@ graph_as_list = [
 justifiez votre réponse
 ````
 
-+++
+```{code-cell} ipython3
+#non car la structure mélange plusieurs types (str et int) 
+```
 
 ### matrice
 
@@ -162,7 +164,9 @@ graph_as_matrix = (
 justifiez votre réponse
 ````
 
-+++
+```{code-cell} ipython3
+#non car c'est compliqué de relier les valeurs de la matrice aux vrais noms des sommets
+```
 
 ### autres idées ?
 
@@ -170,7 +174,15 @@ justifiez votre réponse
 :cell_style: split
 
 # comment feriez-vous ?
-my_graph = ...
+#on peut utiliser un dictionnaire de dictionnaire, comme ça on peut accéder facilement à 
+#un sommet, ses successeurs et la valeur
+my_graph =  {
+    'a': {'b': 7, 'c': 14, 'd':9},
+    'b': {'d': 10, 'e': 15},
+    'c': {'d': 2, 'f': 9},
+    'd': {'e': 11},
+    'e': {'f': 6},
+    }
 ```
 
 +++ {"cell_style": "split"}
@@ -221,6 +233,12 @@ dans notre cas, nous allons choisir la forme la plus simple possible :
 ce qui donnerait (par exemple) pour notre graphe témoin le fichier (ouvrez-le sous vs-code) `data/graph.csv`
 
 ```{literalinclude} data/graph.csv
+```
+
+```{code-cell} ipython3
+with open ('data/graph.csv','r') as f :
+    a =f.readlines()
+a
 ```
 
 +++ {"cell_style": "split"}
@@ -335,7 +353,19 @@ car votre code sera plus léger à lire
 # à vous d'écrire cette fonction
 
 def parse_graph(filename):
-    ...
+    with open (filename,'r') as f :
+        a=f.readlines()
+    n=len(a)
+    G={}
+    for i in range (n):
+        source,direction,poids=a[i].strip().split(',')
+        if source not in G :
+            G[source]={}
+        G[source][direction]=int(poids)
+        if direction not in G : #pour rajouter f et son dico vide
+            G[direction]={}        
+    return G
+        
 ```
 
 pour vérifier, inspectez visuellement votre résultat  
@@ -381,6 +411,7 @@ g3ref == parse_graph("data/graph-3.csv")
 
 ```{code-cell} ipython3
 def number_vertices(graph):
+    return len(graph)
     """
     returns number of vertices
     
@@ -524,7 +555,19 @@ je ne vous donne pas davantage d'indices, je vous laisse écrire ceci
 ```{code-cell} ipython3
 # votre code 
 
-def reachables(graph, s):
+def reachables(graph,s):
+    return set(recreachables(graph,s,[]))
+
+def recreachables(graph,s,a):
+    new_v=graph.get(s,{}).keys()
+    unseen_v=[]
+    for v in new_v:
+        if v not in a : 
+            a.append(v)
+            unseen_v.append(v)
+    for v in unseen_v :
+        recreachables(graph,v,a)
+    return a
     """
     computes the set of reachable vertices in a graph from source s
 
@@ -763,6 +806,25 @@ pour commencer la structure générale de la fonction ressemble à ceci
 # comme ceci
 
 def shortest_distance(graph, v1, v2):
+    not_visited=[sommet for sommet in graph]
+    distance= {sommet : math.inf for sommet in graph}
+    distance[v1] = 0
+    
+    while v2 in not_visited :
+        sommet_actuel = not_visited[0]
+        for s in not_visited:
+           if distance[s] < distance[sommet_actuel]:
+               sommet_actuel = s
+        if distance[sommet_actuel] == math.inf :
+           return None
+        not_visited.remove(sommet_actuel)
+        voisins = graph[sommet_actuel]
+        for sommet,poids in voisins.items() :
+            if sommet in not_visited :
+                if distance[sommet_actuel] + poids < distance[sommet] :
+                    distance[sommet] = distance[sommet_actuel] + poids  
+    return distance[v2]
+       
     """
     this function computes the length of the shortest path
     in graph between v1 and v2
@@ -775,6 +837,8 @@ def shortest_distance(graph, v1, v2):
       int: the length of the shortest path, or None 
     """
     ...
+
+
     
 ```
 
@@ -843,7 +907,7 @@ c'est l'occasion de parler un peu de l'instruction `assert`:
 :tags: [raises-exception]
 
 GD2 = parse_graph("data/dense-2.csv")
-assert shortest_distance(GD2, "1x1", "2x2") == 4
+assert shortest_distance(GD2, '1x1', '2x2') == 4
 ```
 
 ```{code-cell} ipython3
@@ -866,11 +930,38 @@ comment pourriez-vous adapter cet algorithme pour retourner **aussi** le chemin 
 
 ```{code-cell} ipython3
 def shortest_path(graph, v1, v2):
+    not_visited=[sommet for sommet in graph]
+    distance= {sommet : math.inf for sommet in graph}
+    distance[v1] = 0
+    predecesseurs = {sommet: None for sommet in G}
+    
+    while v2 in not_visited :
+        sommet_actuel = not_visited[0]
+        for s in not_visited:
+           if distance[s] < distance[sommet_actuel]:
+               sommet_actuel = s
+        if distance[sommet_actuel] == math.inf :
+           return None
+        not_visited.remove(sommet_actuel)
+        voisins = graph[sommet_actuel]
+        for sommet,poids in voisins.items() :
+            if sommet in not_visited :
+                if distance[sommet_actuel] + poids < distance[sommet] :
+                    distance[sommet] = distance[sommet_actuel] + poids
+                    predecesseurs[sommet] = sommet_actuel
+    path = []
+    sommet=v2
+    while sommet is not None:
+        path.append(sommet)
+        sommet = predecesseurs[sommet]
+        
+    return distance[v2],path
     """
     same as shortest_distance but returns a tuple
     (distance, path)
     path being a list of vertices
     """
+    
     # of course to write this function you will start
     # from your code for shortest_distance
     ...
@@ -880,6 +971,7 @@ def shortest_path(graph, v1, v2):
 
 ```{code-cell} ipython3
 # je vous laisse le soin d'écrire le code pour tester
+shortest_path(G, 'a', 'f') ==(23, ['f', 'c', 'a'])
 ```
 
 ## un graphe un peu plus réaliste
