@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.2
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -96,6 +96,10 @@ quelles options voyez-vous pour modéliser un graphe par un objet Python ?
 
 +++
 
+On peut faire avec une liste de listes, où on stocke chaque arête sous forme de liste (départ, poids arrivé).
+
++++
+
 ### liste de listes
 
 ```{code-cell} ipython3
@@ -125,6 +129,10 @@ graph_as_list = [
 
 justifiez votre réponse
 ````
+
++++
+
+C'était ma première idée mais je pense pas que ce soit le mieux car pour trouver les voisins d'un sommet, il faudrait parcourir l'intégralité de la liste à chaque fois. Donc l'algorithme est je pense beaucoup trop lent.
 
 +++
 
@@ -164,13 +172,20 @@ justifiez votre réponse
 
 +++
 
+Je n'y avais pas pensé, mais je pense pas que cette structure soit adaptée. car ça me parait compliqué de relier un nom de sommet à un numéro de ligne ou de colonne. Et en plus, on perd du temps à chercher les voisins.
+
++++
+
 ### autres idées ?
 
 ```{code-cell} ipython3
 :cell_style: split
 
 # comment feriez-vous ?
-my_graph = ...
+my_graph = my_graph = {'a': {'b': 7, 'c': 14, 'd': 9},'b': {'d': 10, 'e': 15},'c': {'d': 2, 'f': 9},'d': {'e': 11},'e': {'f': 6},'f': {}}
+
+# Dictionnaire de dictionnaires : La clé c'est le nom d'un sommet, sa valeur c'est un dictionnaire où chaque clé est un sommet auquel il
+# est relié (le noeud de base est le départ) et la valeur et le poids de l'arrête
 ```
 
 +++ {"cell_style": "split"}
@@ -334,8 +349,19 @@ car votre code sera plus léger à lire
 ```{code-cell} ipython3
 # à vous d'écrire cette fonction
 
-def parse_graph(filename):
-    ...
+def parse_graph(fichier):
+    graph = {}
+    with open(fichier, 'r') as fichier:
+        for ligne in fichier:
+            ligne = ligne.rstrip()
+            depart, fin, poids = ligne.split(',')
+            poids = int(poids)
+            if depart not in graph:
+                graph[depart] = {}
+            if fin not in graph:
+                graph[fin] = {}
+            graph[depart][fin] = poids
+    return graph
 ```
 
 pour vérifier, inspectez visuellement votre résultat  
@@ -390,7 +416,7 @@ def number_vertices(graph):
     Returns:
       int: number of vertices
     """
-    ...
+    return len(graph)
 ```
 
 ### pour vérifier
@@ -418,6 +444,11 @@ commençons par voir un exemple
 # parce que sinon c'est pas drôle
 
 reach = parse_graph("data/reach.csv")
+```
+
+```{code-cell} ipython3
+pip install graphviz
+#ça a pas marché j'ai fait conda install sur mon ordi direct
 ```
 
 ```{code-cell} ipython3
@@ -524,17 +555,14 @@ je ne vous donne pas davantage d'indices, je vous laisse écrire ceci
 ```{code-cell} ipython3
 # votre code 
 
-def reachables(graph, s):
-    """
-    computes the set of reachable vertices in a graph from source s
-
-    Parameters:
-      graph: a graph implemented as a dict of adjacency dicts
-      s: the source vertex
-    Returns:
-      a set of vertices in graph
-    """
-    ...
+def reachables(graph, s, visite=None):
+    if visite == None:
+        visite = set()
+    visite.add(s)
+    for voisin in graph[s]:
+        if voisin not in visite:
+            reachables(graph, voisin, visite)
+    return visite
 ```
 
 ### pour vérifier
@@ -634,6 +662,10 @@ en français :
 #### question
 
 * quels moyens (structures de données) voyez-vous pour matérialiser avec des objets Python la notion de marque ?
+
++++
+
+Le dictionnaire me parait encore adapté.
 
 +++ {"cell_style": "center"}
 
@@ -761,7 +793,6 @@ pour commencer la structure générale de la fonction ressemble à ceci
 ```{code-cell} ipython3
 # à vous d'écrire une fonction
 # comme ceci
-
 def shortest_distance(graph, v1, v2):
     """
     this function computes the length of the shortest path
@@ -774,7 +805,31 @@ def shortest_distance(graph, v1, v2):
     Returns:
       int: the length of the shortest path, or None 
     """
-    ...
+    if v1 == v2:
+        return 0
+
+    visited = {v1: 0}
+    while True:
+        edges = set()
+        for s in visited:
+            for fin, poids in graph.get(s, {}).items():    #pour eviter les erreurs avec les graphes denses (pour les sommets qui ont pas d'arretes sortantes)
+                if fin not in visited:
+                    edges.add((fin, visited[s] + poids)) 
+        if not edges:
+            return None
+
+        shortest_length = math.inf
+        shortest_vertex = None
+        
+        for d, dist in edges:
+            if dist < shortest_length:
+                shortest_length = dist
+                shortest_vertex = d
+
+        visited[shortest_vertex] = shortest_length
+
+        if shortest_vertex == v2:
+            return shortest_length
     
 ```
 
@@ -873,13 +928,44 @@ def shortest_path(graph, v1, v2):
     """
     # of course to write this function you will start
     # from your code for shortest_distance
-    ...
+    if v1 == v2:
+        return (0, [v1])
+
+    visited = {v1: 0}
+    paths = {v1: [v1]}
+    
+    while True:
+        edges = set()
+        for s in visited:
+            for fin, poids in graph.get(s, {}).items():
+                if fin not in visited:
+                    edges.add((fin, visited[s] + poids, tuple(paths[s]) + (fin,))) 
+        if not edges:
+            return None
+
+        shortest_length = math.inf
+        shortest_vertex = None
+        shortest_path_to_vertex = None
+        
+        for d, dist, p in edges:
+            if dist < shortest_length:
+                shortest_length = dist
+                shortest_vertex = d
+                shortest_path_to_vertex = p
+                
+        visited[shortest_vertex] = shortest_length
+        paths[shortest_vertex] = list(shortest_path_to_vertex)
+
+        if shortest_vertex == v2:
+            return (shortest_length, paths[shortest_vertex])
 ```
 
 ### pour vérifier
 
 ```{code-cell} ipython3
 # je vous laisse le soin d'écrire le code pour tester
+GD2 = parse_graph("data/dense-2.csv")
+shortest_path(G2, "v1", "v3") == (2, ['v1', 'v2', 'v3'])
 ```
 
 ## un graphe un peu plus réaliste
@@ -937,45 +1023,14 @@ une autre approche aurait pu être de re-factorer le code de `parse_graph`, pour
 # de la page web, sans la première ligne, 
 # dans le fichier data/thrones.csv
 # (le répertoire data/ existe déjà)
+
+get_request = requests.get(thrones_url)
+text_data = get_request.text
+lignes = text_data.splitlines()
+texte_sans_premiere_ligne = "\n".join(lignes[1:])
+with open("data/thrones.csv", "w", encoding="utf-8") as f:
+    f.write(texte_sans_premiere_ligne)
 ```
-
-+++ {"cell_style": "split"}
-
-pour vérifier le contenu, regardez les 5 premières lignes qui devraient être
-
-```text
-Aemon,Grenn,5
-Aemon,Samwell,31
-Aerys,Jaime,18
-Aerys,Robert,6
-Aerys,Tyrion,5
-...
-```
-
-+++ {"cell_style": "split"}
-
-````{admonition} pour voir le début d'un fichier
-:class: dropdown tip
-
-* on peut bien sûr utiliser vs-code
-* pour voir le début du fichier depuis le terminal bash, on peut aussi faire simplement
-  ```bash
-  head -5 data/thrones.csv
-  ```
-
-* ou depuis IPython ou un notbook, on ajoute un `!` pour dire que c'est un travail pour le terminal
-  ```python
-  !head -5 data/thrones.csv
-  ```
-
-* enfin on peut aussi écrire un petit bout de code en Python  
-  sauriez-vous le faire ?  
-  on verra bientôt `enumerate()` qui peut s'avérer utile pour faire ça
-````
-
-+++
-
-### charger le graphe thrones
 
 ```{code-cell} ipython3
 # une fois que le fichier local est OK, on peut utiliser notre
