@@ -5,7 +5,7 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.17.2
+    jupytext_version: 1.19.5
 kernelspec:
   display_name: Python 3 (ipykernel)
   language: python
@@ -123,7 +123,7 @@ graph_as_list = [
 
 ````{admonition} pensez-vous que cette structure soit adaptée ?
 
-justifiez votre réponse
+Non il vaudrai mieux utiliser un dictionnaire dont les clefs seraient les sommets et donc les valeurs pour chaque sommet seraient constituées d'une liste de tuple de la forme ('sommet','poids') qui correspondrait à une arrête de poids 'poids' reliant la clefs au sommet 'sommet'. Cette liste est utilisable cependant peut pratique notamment si l'on veut conaitre tout les sommets possédant une arrête avec un autre sommets précis.
 ````
 
 +++
@@ -159,7 +159,7 @@ graph_as_matrix = (
 
 ````{admonition} pensez-vous que cette structure soit adaptée ?
 
-justifiez votre réponse
+Elle parait très adapté dans la mesure ou les calcules matricielle deviendrai représentatif des chemins possible liant deux sommets. Cette structure semble très utile et ergonomique
 ````
 
 +++
@@ -170,7 +170,13 @@ justifiez votre réponse
 :cell_style: split
 
 # comment feriez-vous ?
-my_graph = ...
+my_graph = {'a':[('b',7),('c',14),('d',9)], 
+            'b':[('d',10),('e',15)], 
+            'c':[('d',2),('f',9)],
+            'd':[('e',11)],
+            'e':[('f',6)],
+            'f':[]
+            }
 ```
 
 +++ {"cell_style": "split"}
@@ -335,7 +341,21 @@ car votre code sera plus léger à lire
 # à vous d'écrire cette fonction
 
 def parse_graph(filename):
-    ...
+    with open(filename) as f:
+        a=f.readlines()
+    G={}
+    for s in a:
+        s=s.rstrip().split(',')
+        if s[0] not in G :
+            G[s[0]]={s[1]:int(s[2])}
+        else :
+            G[s[0]][s[1]]=int(s[2])
+            
+        if s[1] not in G:
+            G[s[1]]={}
+        
+    return G
+        
 ```
 
 pour vérifier, inspectez visuellement votre résultat  
@@ -344,7 +364,7 @@ vérifiez aussi/surtout que les poids sont bien **des entiers** et pas des chain
 ```{code-cell} ipython3
 # ceci doit vous afficher un dictionnaire de dictionnaires
 
-parse_graph("data/graph.csv") 
+parse_graph("data/graph.csv")
 ```
 
 ```{code-cell} ipython3
@@ -390,7 +410,7 @@ def number_vertices(graph):
     Returns:
       int: number of vertices
     """
-    ...
+    return len(graph)
 ```
 
 ### pour vérifier
@@ -418,6 +438,7 @@ commençons par voir un exemple
 # parce que sinon c'est pas drôle
 
 reach = parse_graph("data/reach.csv")
+reach
 ```
 
 ```{code-cell} ipython3
@@ -477,6 +498,8 @@ quelles méthodes est-ce que vous voyez pour éviter justement de boucler (pour 
 
 comment fait-on pour décider de s'arrêter ?
 
+On peut s'arréter soit lorsqu'une impasse est atteinte (en stockant dans un dictionnaire les sommets déjà atteints (mémoïsation), ce qui permettrai de ne jamais boucler) soit lorsque le nombre d'itération dépasse le nombre de sommets du graphique +1 (si l'on prend les chemin les plus cours (code plus complexe), ou bien lorsque le nombre d'itéraiton dépasse le nombre d'arrête du graphe
+
 +++
 
 #### ne pas modifier le sujet de la boucle
@@ -523,18 +546,22 @@ je ne vous donne pas davantage d'indices, je vous laisse écrire ceci
 
 ```{code-cell} ipython3
 # votre code 
+def reachables(graph, s,attainable=[]):
+    new_v=graph.get(s,{}).keys() #renvoie graphe[s].keys() si s est une clef et {}.keys sinon
+    attainable.append(s)
+    unseen_v=[]
+    for v in new_v:
+        if v not in attainable:
+            attainable.append(v)
+            unseen_v.append(v)
+            
+    for v in unseen_v:
+        reachables(graph,v,attainable) #intéressant car attainable est mutable
+    return set(attainable)
 
-def reachables(graph, s):
-    """
-    computes the set of reachable vertices in a graph from source s
-
-    Parameters:
-      graph: a graph implemented as a dict of adjacency dicts
-      s: the source vertex
-    Returns:
-      a set of vertices in graph
-    """
-    ...
+#commentaire : la condition d'arrêt est immédiate             
+            
+        
 ```
 
 ### pour vérifier
@@ -545,7 +572,7 @@ vous pouvez vérifier visuellement en comparant vos résultats avec ceux qu'on a
 # pour le debug
 
 for s in reach:
-    print(f"depuis {s} → {reachables(reach, s)}")
+    print(f"depuis {s} → {reachables(reach, s,[])}")
 ```
 
 ```{code-cell} ipython3
@@ -553,7 +580,7 @@ for s in reach:
 # on teste le résultat sur chaque sommet
 
 for vertex, expected_reachables in reach_reachables.items():
-    print(f"en partant de {vertex} → {expected_reachables == reachables(reach, vertex)}")
+    print(f"en partant de {vertex} → {expected_reachables == reachables(reach, vertex,[])}")
 ```
 
 ```{code-cell} ipython3
@@ -573,7 +600,7 @@ G_expected_reachables = [
 # on vérifie pour chacun qu'on
 # obtient bien le résultat attendu
 for (vertex, expected_reachables) in G_expected_reachables:
-    computed = reachables(G, vertex)
+    computed = reachables(G, vertex,[])
     if computed != expected_reachables:
         print(f"ERROR since {vertex}: found {computed} != {expected_reachables}")
     else:
@@ -750,7 +777,7 @@ pour commencer la structure générale de la fonction ressemble à ceci
 
             # marquer le sommet correspondant
 
-            # regarder si c'est le sommet 
+            # regarder si c'est le sommet final
             if shortest_vertex == v2:
                 return ...
 
@@ -761,6 +788,7 @@ pour commencer la structure générale de la fonction ressemble à ceci
 ```{code-cell} ipython3
 # à vous d'écrire une fonction
 # comme ceci
+import math
 
 def shortest_distance(graph, v1, v2):
     """
@@ -774,7 +802,45 @@ def shortest_distance(graph, v1, v2):
     Returns:
       int: the length of the shortest path, or None 
     """
-    ...
+
+    #initialisaiton
+    distances = {s: math.inf for s in graph}
+    visited = {s: False for s in graph}
+    distances[v1] = 0
+
+
+    while True:
+        #1. on trouve le sommet non visité avec la plus petite distance
+        shortest_length = math.inf
+        shortest_vertex = None
+        for s,adj in graph.items():
+            if not visited[s] and shortest_length > distances[s] :
+                shortest_length = distances[s]
+                shortest_vertex = s
+
+        #si on ne peut pas trouver de tel sommet
+        if shortest_vertex is None:
+            return None
+
+        #si on atteint la destination
+        if shortest_vertex == v2:
+            return shortest_length
+
+        visited[shortest_vertex] = True
+
+        #2. on met à jours les voisins du sommet
+        for d,w in graph[shortest_vertex].items():
+            if not visited[d]:
+                new_distance=distances[shortest_vertex]+w
+                if new_distance < distances[d]:
+                    distances[d] = new_distance
+    
+       
+
+        
+        
+                    
+        
     
 ```
 
@@ -871,15 +937,47 @@ def shortest_path(graph, v1, v2):
     (distance, path)
     path being a list of vertices
     """
-    # of course to write this function you will start
-    # from your code for shortest_distance
-    ...
+    #initialisaiton
+    distances = {s: math.inf for s in graph}
+    visited = {s: False for s in graph}
+    distances[v1] = 0
+    path=[]
+
+    while True:
+        #1. on trouve le sommet non visité avec la plus petite distance
+        shortest_length = math.inf
+        shortest_vertex = None
+        for s,adj in graph.items():
+            if not visited[s] and shortest_length > distances[s] :
+                shortest_length = distances[s]
+                shortest_vertex = s
+                path.append(s)
+
+        #si on ne peut pas trouver de tel sommet
+        if shortest_vertex is None:
+            return None
+
+        #si on atteint la destination
+        if shortest_vertex == v2:
+            return (shortest_length, path)
+
+        visited[shortest_vertex] = True
+
+        #2. on met à jours les voisins du sommet
+        for d,w in graph[shortest_vertex].items():
+            if not visited[d]:
+                new_distance=distances[shortest_vertex]+w
+                if new_distance < distances[d]:
+                    distances[d] = new_distance
+
+#ne fonctionne pas 
 ```
 
 ### pour vérifier
 
 ```{code-cell} ipython3
 # je vous laisse le soin d'écrire le code pour tester
+shortest_path(G,'a','e')
 ```
 
 ## un graphe un peu plus réaliste
